@@ -17,13 +17,17 @@ base_dir = os.path.dirname(os.path.realpath(__file__))
 config = os.path.join(base_dir, 'config.ini')
 
 home_path = Path.home()
+
+if not os.path.isdir(os.path.join(home_path, '.config')):
+	os.mkdir(os.path.join(home_path, '.config'))
+
 if os.path.isfile(os.path.join(home_path, ".config/t-bot/config.ini")):
-    config_file = os.path.join(home_path, ".config/t-bot/config.ini")
+	config_file = os.path.join(home_path, ".config/t-bot/config.ini")
 else:
-    if os.path.isdir(os.path.join(home_path, '.config/t-bot')):
-    	os.mkdir(os.path.join(home_path, '.config/t-bot'))
-    copy2(config,os.path.join(home_path, ".config/t-bot"))
-    config_file = os.path.join(home_path, ".config/t-bot/config.ini")
+	if not os.path.isdir(os.path.join(home_path, '.config/t-bot')):
+		os.mkdir(os.path.join(home_path, '.config/t-bot'))
+	copy2(config,os.path.join(home_path, ".config/t-bot"))
+	config_file = os.path.join(home_path, ".config/t-bot/config.ini")
 
 config = configparser.ConfigParser()
 config.read(config_file)
@@ -61,32 +65,32 @@ def reset():
 
 	print("Config file has been reset to default!")	
 
-def url(bot_token:str):
+def url(bot_token: str) -> str:
 	custom_server = config['Telegram']['custom_server']
 	if custom_server == '':
 		return f'https://api.telegram.org/bot{bot_token}/getMe'
 	else:
 		return f'{custom_server}/bot{bot_token}/getMe'
 
-def verify_token(bot_token:str):
+def verify_token(bot_token: str):
 	r = requests.get(url(bot_token))
 	try:
 		verify_data = r.json()
 	except JSONDecodeError:
 		sys.exit(r.text)
 	if verify_data['ok'] == True:
-		return 1, verify_data["result"]["username"]
+		return True, verify_data["result"]["username"]
 	elif verify_data['ok'] == False:
-		return 0
+		return False
 
-def test_token(bot_token:str):
+def test_token(bot_token: str):
 	is_token_correct, bot_name = verify_token(bot_token)
 	if is_token_correct:
 		print(f'Bot Token is correct and Bot username is {bot_name}.')
 	else:
 		print(f'Bot Token is wrong.')
 
-def upload_url(bot_token:str):
+def upload_url(bot_token: str) -> str:
 	config = configparser.ConfigParser()
 	config.read(config_file)
 	custom_server = config['Telegram']['custom_server']
@@ -95,14 +99,7 @@ def upload_url(bot_token:str):
 	else:
 		return f'{custom_server}/bot{bot_token}/sendDocument'
 
-def upload_file(bot_token:str, chat_id:str, file_name:str, caption:str=None):
-
-	file_size = os.path.getsize(file_name)
-
-	custom_server = config['Telegram']['custom_server']
-	if custom_server == '':
-		if file_size > 51200000:
-			sys.exit("Bot can upload only 50 MB file.")
+def uploader(bot_token: str, chat_id: str, file_name: str, caption: str = None):
 
 	data_to_send = []
 	session = requests.session()
@@ -136,7 +133,24 @@ def upload_file(bot_token:str, chat_id:str, file_name:str, caption:str=None):
 	try:
 		resp = r.json()
 	except JSONDecodeError:
-		sys.exit(r.text)
+		
+		return False
+	
+	if resp['ok'] == True:
+		return True, resp
+	else:
+		False, resp
+
+def upload_file(bot_token: str, chat_id: str, file_name: str, caption: str = None):
+
+	file_size = os.path.getsize(file_name)
+
+	custom_server = config['Telegram']['custom_server']
+	if custom_server == '':
+		if file_size > 51200000:
+			sys.exit("Bot can upload only 50 MB file.")
+
+	_, resp = uploader(bot_token, chat_id, file_name, caption)
 	
 	if resp['ok'] == True:
 		print(f'{file_name} uploaded sucessfully on {resp["result"]["sender_chat"]["title"]}')
@@ -144,7 +158,7 @@ def upload_file(bot_token:str, chat_id:str, file_name:str, caption:str=None):
 		print(f"\n{resp}")
 		print("There is something error")
 
-def downloader(url:str, file_name:str):
+def downloader(url: str, file_name: str) -> bool:
 	try:
 		filesize = int(head(url).headers["Content-Length"])
 	except ConnectionError:
@@ -165,13 +179,19 @@ def downloader(url:str, file_name:str):
 				file=sys.stdout,  # default goes to stderr, this is the display on console.
 				desc=file_name  # prefix to be displayed on progress bar.
 		) as progress:
-			for chunk in r.iter_content(chunk_size=chunk_size):
-				datasize = f.write(chunk)
-				progress.update(datasize)
+			if r.status_code == 200:
+				for chunk in r.iter_content(chunk_size=chunk_size):
+					datasize = f.write(chunk)
+					progress.update(datasize)
+				return True
+			else:
+				os.remove(file_name)
+				return False
 	except ConnectionError as e:
-		print(e)
+		print(str(e))
+		return False
 
-def download(url:str, bot_token:str, chat_id:str, caption:str=None):
+def download(url: str, bot_token: str, chat_id: str, caption: str = None):
 	download_path = 'downloads'
 	if not os.path.isdir(download_path):
 		os.mkdir(download_path)
@@ -254,7 +274,7 @@ def get_id(bot_token:str):
 				print("Chad ID        ->  Chat Name")
 				print(str(chat_id['my_chat_member']['chat']['id']) + " -> " + chat_id['my_chat_member']['chat']['title'])
 			else:
-				print("No chat id found")
+				print("No chat id found, Remove your bot from chat and add it again, then run it")
 	else:
 		print(resp)
 		print("\nThere is something error")
