@@ -1,6 +1,7 @@
 import argparse
 import configparser
 
+from tl_bot import __version__
 from tl_bot.main import setup, test_token, reset, upload_file, download, config_file, get_id, files, delete
 
 package_name = "t-bot"
