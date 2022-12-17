@@ -139,7 +139,7 @@ def uploader(bot_token: str, chat_id: str, file_name: str, caption: str = None):
 	if resp['ok'] == True:
 		return True, resp
 	else:
-		False, resp
+		return False, resp
 
 def upload_file(bot_token: str, chat_id: str, file_name: str, caption: str = None):
 
