@@ -95,11 +95,11 @@ def upload_url(bot_token: str) -> str:
 	config.read(config_file)
 	custom_server = config['Telegram']['custom_server']
 	if custom_server == '':
-		return f'https://api.telegram.org/bot{bot_token}/sendDocument'
+		return 'https://api.telegram.org'
 	else:
-		return f'{custom_server}/bot{bot_token}/sendDocument'
+		return custom_server
 
-def uploader(bot_token: str, chat_id: str, file_name: str, caption: str = None):
+def uploader(bot_token: str, chat_id: str, file_name: str, server_url: str = "https://api.telegram.org", caption: str = None):
 
 	data_to_send = []
 	session = requests.session()
@@ -124,7 +124,7 @@ def uploader(bot_token: str, chat_id: str, file_name: str, caption: str = None):
 			)
 
 			r = session.post(
-				upload_url(bot_token),
+				f"{server_url}/bot{bot_token}/sendDocument",
 				data=monitor,
 				allow_redirects=False,
 				headers={"Content-Type": monitor.content_type},
@@ -133,7 +133,6 @@ def uploader(bot_token: str, chat_id: str, file_name: str, caption: str = None):
 	try:
 		resp = r.json()
 	except JSONDecodeError:
-		
 		return False
 	
 	if resp['ok'] == True:
@@ -144,13 +143,13 @@ def uploader(bot_token: str, chat_id: str, file_name: str, caption: str = None):
 def upload_file(bot_token: str, chat_id: str, file_name: str, caption: str = None):
 
 	file_size = os.path.getsize(file_name)
-
+	server_url =  upload_url(bot_token)
 	custom_server = config['Telegram']['custom_server']
 	if custom_server == '':
 		if file_size > 51200000:
 			sys.exit("Bot can upload only 50 MB file.")
 
-	_, resp = uploader(bot_token, chat_id, file_name, caption)
+	_, resp = uploader(bot_token, chat_id, file_name, server_url, caption)
 	
 	if resp['ok'] == True:
 		print(f'{file_name} uploaded sucessfully on {resp["result"]["sender_chat"]["title"]}')

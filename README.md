@@ -46,7 +46,7 @@ from tl_bot.main import test_token
 test_token(bot_token)   # bot_token type str
 ```
 
-### tl_bot.main.uploadd_file(bot_token, chat_id, file_name, caption)
+### tl_bot.main.uploader(bot_token: str, chat_id: str, file_name: str, server_url: str, caption: str = None)
 
 ```py
 from tl_bot.main import uploadd_file
