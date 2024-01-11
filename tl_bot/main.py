@@ -81,14 +81,14 @@ def verify_token(bot_token: str):
 	if verify_data['ok'] == True:
 		return True, verify_data["result"]["username"]
 	elif verify_data['ok'] == False:
-		return False
+		return False, None
 
 def test_token(bot_token: str):
 	is_token_correct, bot_name = verify_token(bot_token)
 	if is_token_correct:
 		print(f'Bot Token is correct and Bot username is {bot_name}.')
 	else:
-		print(f'Bot Token is wrong.')
+		print(f'Bot Token is incorrect.')
 
 def upload_url(bot_token: str) -> str:
 	config = configparser.ConfigParser()
