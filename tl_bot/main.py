@@ -132,13 +132,15 @@ def uploader(bot_token: str, chat_id: str, file_name: str, server_url: str = "ht
 
 	try:
 		resp = r.json()
+
+		if resp['ok'] == True:
+			return True, resp
+		else:
+			return False, resp
+
 	except JSONDecodeError:
-		return False
+		return False, r.text
 	
-	if resp['ok'] == True:
-		return True, resp
-	else:
-		return False, resp
 
 def upload_file(bot_token: str, chat_id: str, file_name: str, caption: str = None):
 
@@ -149,9 +151,9 @@ def upload_file(bot_token: str, chat_id: str, file_name: str, caption: str = Non
 		if file_size > 51200000:
 			sys.exit("Bot can upload only 50 MB file.")
 
-	_, resp = uploader(bot_token, chat_id, file_name, server_url, caption)
+	status, resp = uploader(bot_token, chat_id, file_name, server_url, caption)
 	
-	if resp['ok'] == True:
+	if status == True:
 		print(f'{file_name} uploaded sucessfully on {resp["result"]["sender_chat"]["title"]}')
 	else:
 		print(f"\n{resp}")
