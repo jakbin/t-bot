@@ -24,6 +24,9 @@ def main(argv = None):
 	subparsers = parser.add_subparsers(dest="command")
 
 	setup_parser = subparsers.add_parser("setup", help="setup your telegram credentials")
+	setup_parser.add_argument('-c', '--cahtid', type=str, default=None, help="channel name or chat id with '-'")
+	setup_parser.add_argument('-b', '--token', type=str, default=None, help="telegram bot api token")
+	setup_parser.add_argument('-s', '--server', type=str, default=None, help="telegram bot private server url")
 
 	reset_parser = subparsers.add_parser("reset", help="reset to default your telegram credentials")
 
@@ -55,7 +58,7 @@ def main(argv = None):
 	elif args.command == "getid":
 		return get_id(bot_token)
 	elif args.command == "setup":
-		return setup()
+		return setup(args.cahtid, args.token, args.server)
 	elif args.command == "reset":
 		return reset()
 	elif args.command == "up":

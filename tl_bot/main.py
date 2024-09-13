@@ -36,22 +36,34 @@ class ProgressBar(tqdm):
 	def update_to(self, n: int) -> None:
 		self.update(n - self.n)
 
-def setup():
-	print('If you did not want to change anyone, just press enter.')
-	chat_id = input("Enter your channel name or chat id with '-' : ")
-	if chat_id != '':
-		config.set('Telegram', 'chat_id', chat_id)
+def setup(cahtid, token, server):
+	if cahtid or token or server:
+		if cahtid:
+			config.set('Telegram', 'chat_id', cahtid)
+		if token:
+			config.set('Telegram', 'bot_token', token)
+		if server:
+			config.set('Telegram', 'custom_server', server)
+		
+		with open(config_file, 'w') as configfile:
+			config.write(configfile)
 
-	bot_token = input("Enter your telegram bot api token  : ")
-	if bot_token != '':
-		config.set('Telegram', 'bot_token', bot_token)
+	else:
+		print('If you did not want to change anyone, just press enter.')
+		chat_id = input("Enter your channel name or chat id with '-' : ")
+		if chat_id != '':
+			config.set('Telegram', 'chat_id', chat_id)
 
-	custom_server = input("Enter your telegram bot private server url  : ")
-	if custom_server != '':
-		config.set('Telegram', 'custom_server', custom_server)
+		bot_token = input("Enter your telegram bot api token  : ")
+		if bot_token != '':
+			config.set('Telegram', 'bot_token', bot_token)
 
-	with open(config_file, 'w') as configfile:
-		config.write(configfile)
+		custom_server = input("Enter your telegram bot private server url  : ")
+		if custom_server != '':
+			config.set('Telegram', 'custom_server', custom_server)
+
+		with open(config_file, 'w') as configfile:
+			config.write(configfile)
 
 	print("Setup complete!")
 
