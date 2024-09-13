@@ -15,7 +15,7 @@ Upload files to your Telegram channel or group with your telegram bot
 - Progress bar
 - You can change file name before upload on telegram
 
-Note : Bot can upload only 50 MB file (with default telegram bot api server url)
+Note : Bot can upload only 50 MB file (with default telegram bot api server url).
 
 
 ## Installation
@@ -27,6 +27,7 @@ pip3 install tl-bot
 ## Usage 
 ```sh
 t-bot setup               # setup your telegram credentials
+t-bot setup --cahtid -1001234567890 --token 1234:asdfgjkl --server http://127.0.0.1:8081      # setup your telegram credentials
 t-bot reset               # reset to default your telegram credentials
 t-bot test                # test telegram bot token
 t-bot getid               # get chat id of your connected group or channel
