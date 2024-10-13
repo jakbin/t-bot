@@ -24,7 +24,7 @@ setuptools.setup(
 		"Natural Language :: English",
 		"Operating System :: OS Independent",
 	],
-	keywords='telegram,t-bot,telegram-api,telegram-api-bot,telegram-file-upload,elegram-upload',
+	keywords='telegram,t-bot,telegram-api,telegram-api-bot,telegram-file-upload,telegram-upload',
 	packages=["tl_bot"],
 	package_data={  
 		'tl_bot': [
