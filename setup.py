@@ -32,7 +32,8 @@ setuptools.setup(
 		]},
 	entry_points={
 		"console_scripts":[
-			"t-bot = tl_bot.cli:main"
+			"t-bot = tl_bot.cli:main",
+			"tl-bot = tl_bot.cli:main",
 		]
 	}
 )
