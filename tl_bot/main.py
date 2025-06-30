@@ -13,85 +13,103 @@ from requests import get, ConnectionError, head
 
 urllib3.disable_warnings()
 
-base_dir = os.path.dirname(os.path.realpath(__file__))
-config = os.path.join(base_dir, 'config.ini')
 
-home_path = Path.home()
+# --- Constants ---
+CONFIG_DIR = Path.home() / '.config' / 't-bot'
+CONFIG_FILE = CONFIG_DIR / 'config.ini'
+DEFAULT_CONFIG = Path(__file__).parent / 'config.ini'
+DOWNLOADS_DIR = Path('downloads')
+TELEGRAM_API_URL = 'https://api.telegram.org'
 
-if not os.path.isdir(os.path.join(home_path, '.config')):
-	os.mkdir(os.path.join(home_path, '.config'))
+# --- Logging Setup ---
+import logging
+logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 
-if os.path.isfile(os.path.join(home_path, ".config/t-bot/config.ini")):
-	config_file = os.path.join(home_path, ".config/t-bot/config.ini")
-else:
-	if not os.path.isdir(os.path.join(home_path, '.config/t-bot')):
-		os.mkdir(os.path.join(home_path, '.config/t-bot'))
-	copy2(config,os.path.join(home_path, ".config/t-bot"))
-	config_file = os.path.join(home_path, ".config/t-bot/config.ini")
+# --- Helper Functions ---
+def ensure_config_file() -> Path:
+	"""Ensure the config file exists in the user's config directory."""
+	CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+	if not CONFIG_FILE.exists():
+		copy2(DEFAULT_CONFIG, CONFIG_FILE)
+	return CONFIG_FILE
 
-config = configparser.ConfigParser()
-config.read(config_file)
+def get_config() -> configparser.ConfigParser:
+	"""Load and return the config parser object."""
+	config = configparser.ConfigParser()
+	config.read(CONFIG_FILE)
+	return config
+
+# --- Config Initialization ---
+ensure_config_file()
+config = get_config()
+
 
 class ProgressBar(tqdm):
+	"""Progress bar for uploads/downloads."""
 	def update_to(self, n: int) -> None:
 		self.update(n - self.n)
 
-def setup(cahtid, token, server) -> None:
-	if cahtid or token or server:
-		if cahtid:
-			config.set('Telegram', 'chat_id', cahtid)
-		if token:
-			config.set('Telegram', 'bot_token', token)
-		if server:
-			config.set('Telegram', 'custom_server', server)
-		
-		with open(config_file, 'w') as configfile:
+
+def setup(chatid: str = None, token: str = None, server: str = None) -> None:
+	"""Setup or update Telegram bot configuration."""
+	config = get_config()
+	changed = False
+	if chatid:
+		config.set('Telegram', 'chat_id', chatid)
+		changed = True
+	if token:
+		config.set('Telegram', 'bot_token', token)
+		changed = True
+	if server:
+		config.set('Telegram', 'custom_server', server)
+		changed = True
+	if changed:
+		with open(CONFIG_FILE, 'w') as configfile:
 			config.write(configfile)
-
-	else:
-		print('If you did not want to change anyone, just press enter.')
-		chat_id = input("Enter your channel name or chat id with '-' : ")
-		if chat_id != '':
-			config.set('Telegram', 'chat_id', chat_id)
-
-		bot_token = input("Enter your telegram bot api token  : ")
-		if bot_token != '':
-			config.set('Telegram', 'bot_token', bot_token)
-
-		custom_server = input("Enter your telegram bot private server url  : ")
-		if custom_server != '':
-			config.set('Telegram', 'custom_server', custom_server)
-
-		with open(config_file, 'w') as configfile:
-			config.write(configfile)
-
-	print("Setup complete!")
+		logging.info("Config updated.")
+		return
+	print('If you did not want to change anyone, just press enter.')
+	chat_id = input("Enter your channel name or chat id with '-' : ")
+	if chat_id:
+		config.set('Telegram', 'chat_id', chat_id)
+	bot_token = input("Enter your telegram bot api token  : ")
+	if bot_token:
+		config.set('Telegram', 'bot_token', bot_token)
+	custom_server = input("Enter your telegram bot private server url  : ")
+	if custom_server:
+		config.set('Telegram', 'custom_server', custom_server)
+	with open(CONFIG_FILE, 'w') as configfile:
+		config.write(configfile)
+	logging.info("Setup complete!")
 
 def reset()	-> None:
+	"""Reset the configuration file to default values."""
 	config.set('Telegram', 'chat_id', '@xxxxxxxx')
 	config.set('Telegram', 'bot_token', '098765:xxxxxxxxxxxxx')
 	config.set('Telegram', 'custom_server', '')
 
-	with open(config_file, 'w') as configfile:
+	with open(CONFIG_FILE, 'w') as configfile:
 		config.write(configfile)
 
-	print("Config file has been reset to default!")
+	logging.info("Config file has been reset to default!")
 
 def tg_server_url() -> str:
 	custom_server = config['Telegram']['custom_server']
 	if custom_server == '':
-		return 'https://api.telegram.org'
+		return TELEGRAM_API_URL
 	else:
 		return custom_server
 
 def getme_url(bot_token: str) -> str:
+	"""Construct the URL for the getMe API endpoint."""
 	custom_server = tg_server_url()
 	if custom_server == '':
-		return f'https://api.telegram.org/bot{bot_token}/getMe'
+		return f'{TELEGRAM_API_URL}/bot{bot_token}/getMe'
 	else:
 		return f'{custom_server}/bot{bot_token}/getMe'
 
 def verify_token(bot_token: str) -> tuple:
+	"""Verify the bot token by calling the getMe API endpoint."""
 	r = requests.get(getme_url(bot_token))
 	try:
 		verify_data = r.json()
@@ -103,6 +121,7 @@ def verify_token(bot_token: str) -> tuple:
 		return False, None
 
 def test_token(bot_token: str) -> None:
+	"""Test the bot token by verifying it and printing the bot's username."""
 	is_token_correct, bot_name = verify_token(bot_token)
 	if is_token_correct:
 		print(f'Bot Token is correct and Bot username is {bot_name}.')
@@ -203,9 +222,8 @@ def downloader(url: str, file_name: str) -> bool:
 		return False
 
 def download(url: str, bot_token: str, chat_id: str, caption: str = None) -> None:
-	download_path = 'downloads'
-	if not os.path.isdir(download_path):
-		os.mkdir(download_path)
+	if not os.path.isdir(DOWNLOADS_DIR):
+		os.mkdir(DOWNLOADS_DIR)
 
 	filename = os.path.basename(url)
 
@@ -214,7 +232,7 @@ def download(url: str, bot_token: str, chat_id: str, caption: str = None) -> Non
 	if choice in yes:
 		filename = input("Enter new file name with extension: ")
 
-	file_path = os.path.join(download_path, filename)
+	file_path = os.path.join(DOWNLOADS_DIR, filename)
 
 	print("Downloading file......")
 	try:
@@ -222,15 +240,16 @@ def download(url: str, bot_token: str, chat_id: str, caption: str = None) -> Non
 	except OSError:
 		print("File name is too log !")
 		filename = input("Enter new filename : ")
-		file_path = os.path.join(download_path, filename)
+		file_path = os.path.join(DOWNLOADS_DIR, filename)
 		downloader(url, file_path)
 	
 	print("\nUploading file......")
 	upload_file(bot_token, chat_id, file_path, caption)
 
 def files()	-> None:
+	"""List all files in the 'downloads' directory."""
 	try:
-		files = os.listdir('downloads')
+		files = os.listdir(DOWNLOADS_DIR)
 	except FileNotFoundError:
 		sys.exit('Directory "downloads" not found !')
 	if files != []:
@@ -241,8 +260,9 @@ def files()	-> None:
 			print(f"{i} -> {file[0:55]}")
 
 def delete() -> None:
+	"""Delete files from the 'downloads' directory."""
 	try:
-		files = os.listdir('downloads')
+		files = os.listdir(DOWNLOADS_DIR)
 	except FileNotFoundError:
 		sys.exit('Directory "downloads" not found !')
 	if files != []:
@@ -270,10 +290,11 @@ def delete() -> None:
 					print(f"Id {x} not found")
 
 def get_id(bot_token : str) -> None:
+	"""Get chat IDs from the bot's updates."""
 	if bot_token == '098765:xxxxxxxxxxxxxxxxx':
 		bot_token = input("Enter your telegram bot api token  : ")
 		config.set('Telegram', 'bot_token', bot_token)
-		with open(config_file, 'w') as configfile:
+		with open(CONFIG_FILE, 'w') as configfile:
 			config.write(configfile)
 	url = f'https://api.telegram.org/bot{bot_token}/getUpdates'
 	r = requests.get(url)
