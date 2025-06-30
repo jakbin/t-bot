@@ -174,7 +174,7 @@ def uploader(bot_token: str, chat_id: str, file_name: str, server_url: str = "ht
 def upload_file(bot_token: str, chat_id: str, file_name: str, caption: str = None) -> None:
 
 	file_size = os.path.getsize(file_name)
-	server_url =  server_url(bot_token)
+	server_url =  tg_server_url(bot_token)
 	custom_server = config['Telegram']['custom_server']
 	if custom_server == '':
 		if file_size > 51200000:
