@@ -39,26 +39,26 @@ t-bot d {url} -c caption                   # download and upload file to your Te
 
 The anonfile-upload client is also usable through an API (for test integration, automation, etc)
 
-### tl_bot.main.test_token(bot_token)
+### tl_bot.test_token(bot_token)
 
 ```py
-from tl_bot.main import test_token
+from tl_bot import test_token
 
 test_token(bot_token)   # bot_token type str
 ```
 
-### tl_bot.main.uploader(bot_token: str, chat_id: str, file_name: str, server_url: str, caption: str)
+### tl_bot.uploader(bot_token: str, chat_id: str, file_name: str, server_url: str, caption: str)
 
 ```py
-from tl_bot.main import uploader
+from tl_bot import uploader
 
 uploader(bot_token, chat_id, file_name, server_url, caption)    # all arguments must be str
 ```
 
-### tl_bot.main.download(url:str, bot_token:str, chat_id:str, caption:str)
+### tl_bot.download(url:str, bot_token:str, chat_id:str, caption:str)
 
 ```py
-from tl_bot.main import download
+from tl_bot import download
 
 download(url, bot_token, chat_id, caption)    # all arguments must be str
 ```
