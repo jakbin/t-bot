@@ -1,13 +1,9 @@
 import argparse
-import configparser
 
 from tl_bot import __version__
-from tl_bot.main import setup, test_token, reset, upload_file, download, config_file, get_id, files, delete, send_message
+from tl_bot.main import setup, test_token, reset, upload_file, download, config, get_id, files, delete, send_message
 
 package_name = "t-bot"
-
-config = configparser.ConfigParser()
-config.read(config_file)
 chat_id = config['Telegram']['chat_id']
 bot_token = config['Telegram']['bot_token']
 
@@ -17,7 +13,8 @@ example_uses = '''example:
    t-bot test
    t-bot getid
    t-bot up {files_name} -c file_caption
-   t-bot d {url} -c caption'''
+   t-bot d {url} -c caption
+   t-bot msg "your message"'''
 
 def main(argv = None):
 	parser = argparse.ArgumentParser(prog=package_name, description="upload your files to your group or channel", epilog=example_uses, formatter_class=argparse.RawDescriptionHelpFormatter)
