@@ -36,7 +36,7 @@ class ProgressBar(tqdm):
 	def update_to(self, n: int) -> None:
 		self.update(n - self.n)
 
-def setup(cahtid, token, server):
+def setup(cahtid, token, server) -> None:
 	if cahtid or token or server:
 		if cahtid:
 			config.set('Telegram', 'chat_id', cahtid)
@@ -67,7 +67,7 @@ def setup(cahtid, token, server):
 
 	print("Setup complete!")
 
-def reset():
+def reset()	-> None:
 	config.set('Telegram', 'chat_id', '@xxxxxxxx')
 	config.set('Telegram', 'bot_token', '098765:xxxxxxxxxxxxx')
 	config.set('Telegram', 'custom_server', '')
@@ -75,17 +75,24 @@ def reset():
 	with open(config_file, 'w') as configfile:
 		config.write(configfile)
 
-	print("Config file has been reset to default!")	
+	print("Config file has been reset to default!")
 
-def url(bot_token: str) -> str:
+def tg_server_url() -> str:
 	custom_server = config['Telegram']['custom_server']
+	if custom_server == '':
+		return 'https://api.telegram.org'
+	else:
+		return custom_server
+
+def getme_url(bot_token: str) -> str:
+	custom_server = tg_server_url()
 	if custom_server == '':
 		return f'https://api.telegram.org/bot{bot_token}/getMe'
 	else:
 		return f'{custom_server}/bot{bot_token}/getMe'
 
-def verify_token(bot_token: str):
-	r = requests.get(url(bot_token))
+def verify_token(bot_token: str) -> tuple:
+	r = requests.get(getme_url(bot_token))
 	try:
 		verify_data = r.json()
 	except JSONDecodeError:
@@ -95,23 +102,14 @@ def verify_token(bot_token: str):
 	elif verify_data['ok'] == False:
 		return False, None
 
-def test_token(bot_token: str):
+def test_token(bot_token: str) -> None:
 	is_token_correct, bot_name = verify_token(bot_token)
 	if is_token_correct:
 		print(f'Bot Token is correct and Bot username is {bot_name}.')
 	else:
 		print(f'Bot Token is incorrect.')
 
-def upload_url(bot_token: str) -> str:
-	config = configparser.ConfigParser()
-	config.read(config_file)
-	custom_server = config['Telegram']['custom_server']
-	if custom_server == '':
-		return 'https://api.telegram.org'
-	else:
-		return custom_server
-
-def uploader(bot_token: str, chat_id: str, file_name: str, server_url: str = "https://api.telegram.org", caption: str = None):
+def uploader(bot_token: str, chat_id: str, file_name: str, server_url: str = "https://api.telegram.org", caption: str = None) -> tuple:
 
 	data_to_send = []
 	session = requests.session()
@@ -154,10 +152,10 @@ def uploader(bot_token: str, chat_id: str, file_name: str, server_url: str = "ht
 		return False, r.text
 	
 
-def upload_file(bot_token: str, chat_id: str, file_name: str, caption: str = None):
+def upload_file(bot_token: str, chat_id: str, file_name: str, caption: str = None) -> None:
 
 	file_size = os.path.getsize(file_name)
-	server_url =  upload_url(bot_token)
+	server_url =  server_url(bot_token)
 	custom_server = config['Telegram']['custom_server']
 	if custom_server == '':
 		if file_size > 51200000:
@@ -204,7 +202,7 @@ def downloader(url: str, file_name: str) -> bool:
 		print(str(e))
 		return False
 
-def download(url: str, bot_token: str, chat_id: str, caption: str = None):
+def download(url: str, bot_token: str, chat_id: str, caption: str = None) -> None:
 	download_path = 'downloads'
 	if not os.path.isdir(download_path):
 		os.mkdir(download_path)
@@ -230,7 +228,7 @@ def download(url: str, bot_token: str, chat_id: str, caption: str = None):
 	print("\nUploading file......")
 	upload_file(bot_token, chat_id, file_path, caption)
 
-def files():
+def files()	-> None:
 	try:
 		files = os.listdir('downloads')
 	except FileNotFoundError:
@@ -242,7 +240,7 @@ def files():
 			i += 1
 			print(f"{i} -> {file[0:55]}")
 
-def delete():
+def delete() -> None:
 	try:
 		files = os.listdir('downloads')
 	except FileNotFoundError:
@@ -271,7 +269,7 @@ def delete():
 				except IndexError:
 					print(f"Id {x} not found")
 
-def get_id(bot_token:str):
+def get_id(bot_token : str) -> None:
 	if bot_token == '098765:xxxxxxxxxxxxxxxxx':
 		bot_token = input("Enter your telegram bot api token  : ")
 		config.set('Telegram', 'bot_token', bot_token)
@@ -280,14 +278,40 @@ def get_id(bot_token:str):
 	url = f'https://api.telegram.org/bot{bot_token}/getUpdates'
 	r = requests.get(url)
 	resp = r.json()
-
 	if resp['ok'] == True:
+		found = False
 		for chat_id in resp['result']:
 			if 'my_chat_member' in chat_id:
 				print("Chad ID        ->  Chat Name")
 				print(str(chat_id['my_chat_member']['chat']['id']) + " -> " + chat_id['my_chat_member']['chat']['title'])
+				found = True
+			elif 'message' in chat_id:
+				print("Chad ID        ->  Chat Name")
+				print(str(chat_id['message']['chat']['id']) + " -> " + chat_id['message']['chat']['username'])
+				found = True
 			else:
 				print("No chat id found, Remove your bot from chat and add it again, then run it")
+		if not found:
+			print("No chat id found, Do some activity with bot, then run it")
 	else:
 		print(resp)
 		print("\nThere is something error")
+
+def send_message(message: str, bot_token: str = config['Telegram']['bot_token'], chat_id: str = config['Telegram']['chat_id']) -> None:
+	server_url = tg_server_url()
+
+	url = f"{server_url}/bot{bot_token}/sendMessage"
+	data = {
+		'chat_id': chat_id,
+		'text': message
+	}
+
+	try:
+		r = requests.post(url, data=data)
+		resp = r.json()
+		if resp['ok'] == True:
+			print("Message sent successfully!")
+		else:
+			print(resp)
+	except JSONDecodeError:
+		print("There is something error")
