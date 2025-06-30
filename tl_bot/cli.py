@@ -2,7 +2,7 @@ import argparse
 import configparser
 
 from tl_bot import __version__
-from tl_bot.main import setup, test_token, reset, upload_file, download, config_file, get_id, files, delete
+from tl_bot.main import setup, test_token, reset, upload_file, download, config_file, get_id, files, delete, send_message
 
 package_name = "t-bot"
 
@@ -46,6 +46,9 @@ def main(argv = None):
 
 	delete_parser = subparsers.add_parser("del", help="delete available files 'downloads' folder")
 
+	send_message_parser = subparsers.add_parser("msg", help="send message to your group or channel")
+	send_message_parser.add_argument("message", type=str, help="message to send")
+	
 	parser.add_argument('-v',"--version",
 							action="store_true",
 							dest="version",
@@ -69,6 +72,8 @@ def main(argv = None):
 		return files()
 	elif args.command == "del":
 		return delete()
+	elif args.command == "msg":
+			return send_message(args.message, bot_token, chat_id)
 	elif args.version:
 		return print(__version__)
 	else:
