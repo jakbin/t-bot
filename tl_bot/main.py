@@ -5,43 +5,25 @@ import requests
 import configparser
 from tqdm import tqdm
 from pathlib import Path
-from shutil import copy2
 import requests_toolbelt
 from requests.exceptions import JSONDecodeError
 from requests.exceptions import MissingSchema
 from requests import get, ConnectionError, head
 
+from tl_bot.config import get_config, CONFIG_FILE
+
 urllib3.disable_warnings()
 
 
 # --- Constants ---
-CONFIG_DIR = Path.home() / '.config' / 't-bot'
-CONFIG_FILE = CONFIG_DIR / 'config.ini'
-DEFAULT_CONFIG = Path(__file__).parent / 'config.ini'
 DOWNLOADS_DIR = Path('downloads')
 TELEGRAM_API_URL = 'https://api.telegram.org'
+
+config = get_config()
 
 # --- Logging Setup ---
 import logging
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
-
-# --- Helper Functions ---
-def ensure_config_file() -> Path:
-	"""Ensure the config file exists in the user's config directory."""
-	CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-	if not CONFIG_FILE.exists():
-		copy2(DEFAULT_CONFIG, CONFIG_FILE)
-	return CONFIG_FILE
-
-def get_config() -> configparser.ConfigParser:
-	"""Load and return the config parser object."""
-	config = configparser.ConfigParser()
-	config.read(CONFIG_FILE)
-	return config
-
-# --- Config Initialization ---
-ensure_config_file()
-config = get_config()
 
 
 class ProgressBar(tqdm):
@@ -49,51 +31,8 @@ class ProgressBar(tqdm):
 	def update_to(self, n: int) -> None:
 		self.update(n - self.n)
 
-
-def setup(chatid: str = None, token: str = None, server: str = None) -> None:
-	"""Setup or update Telegram bot configuration."""
-	config = get_config()
-	changed = False
-	if chatid:
-		config.set('Telegram', 'chat_id', chatid)
-		changed = True
-	if token:
-		config.set('Telegram', 'bot_token', token)
-		changed = True
-	if server:
-		config.set('Telegram', 'custom_server', server)
-		changed = True
-	if changed:
-		with open(CONFIG_FILE, 'w') as configfile:
-			config.write(configfile)
-		logging.info("Config updated.")
-		return
-	print('If you did not want to change anyone, just press enter.')
-	chat_id = input("Enter your channel name or chat id with '-' : ")
-	if chat_id:
-		config.set('Telegram', 'chat_id', chat_id)
-	bot_token = input("Enter your telegram bot api token  : ")
-	if bot_token:
-		config.set('Telegram', 'bot_token', bot_token)
-	custom_server = input("Enter your telegram bot private server url  : ")
-	if custom_server:
-		config.set('Telegram', 'custom_server', custom_server)
-	with open(CONFIG_FILE, 'w') as configfile:
-		config.write(configfile)
-	logging.info("Setup complete!")
-
-def reset()	-> None:
-	"""Reset the configuration file to default values."""
-	config.set('Telegram', 'chat_id', '@xxxxxxxx')
-	config.set('Telegram', 'bot_token', '098765:xxxxxxxxxxxxx')
-	config.set('Telegram', 'custom_server', '')
-
-	with open(CONFIG_FILE, 'w') as configfile:
-		config.write(configfile)
-
-	logging.info("Config file has been reset to default!")
-
 def tg_server_url() -> str:
+	config = get_config()
 	custom_server = config['Telegram']['custom_server']
 	if custom_server == '':
 		return TELEGRAM_API_URL
@@ -128,7 +67,7 @@ def test_token(bot_token: str) -> None:
 	else:
 		print(f'Bot Token is incorrect.')
 
-def uploader(bot_token: str, chat_id: str, file_name: str, server_url: str = "https://api.telegram.org", caption: str = None) -> tuple:
+def uploader(file_name: str, server_url: str = "https://api.telegram.org", bot_token: str = config['Telegram']['bot_token'], chat_id: str = config['Telegram']['chat_id'], caption: str = None) -> tuple:
 
 	data_to_send = []
 	session = requests.session()
@@ -180,7 +119,7 @@ def upload_file(bot_token: str, chat_id: str, file_name: str, caption: str = Non
 		if file_size > 51200000:
 			sys.exit("Bot can upload only 50 MB file.")
 
-	status, resp = uploader(bot_token, chat_id, file_name, server_url, caption)
+	status, resp = uploader(file_name, server_url, bot_token, chat_id, caption)
 	
 	if status == True:
 		print(f'{file_name} uploaded sucessfully on {resp["result"]["sender_chat"]["title"]}')
@@ -246,49 +185,6 @@ def download(url: str, bot_token: str, chat_id: str, caption: str = None) -> Non
 	print("\nUploading file......")
 	upload_file(bot_token, chat_id, file_path, caption)
 
-def files()	-> None:
-	"""List all files in the 'downloads' directory."""
-	try:
-		files = os.listdir(DOWNLOADS_DIR)
-	except FileNotFoundError:
-		sys.exit('Directory "downloads" not found !')
-	if files != []:
-		print("id -> File Name")
-		i = 0
-		for file in files:
-			i += 1
-			print(f"{i} -> {file[0:55]}")
-
-def delete() -> None:
-	"""Delete files from the 'downloads' directory."""
-	try:
-		files = os.listdir(DOWNLOADS_DIR)
-	except FileNotFoundError:
-		sys.exit('Directory "downloads" not found !')
-	if files != []:
-		print("\nId ->  File Name")
-		i = 0
-		for file in files:
-			i += 1
-			print(f"{i}  ->  {file[0:55]}")
-
-		num_of_files = len(files)
-		inputs = list(map(str, input(f"\nSelect file number [1-{num_of_files}] seprated by commasm, or 'all':").split(sep=",")))
-		print(inputs)
-		if inputs == ['all']:
-			print("all")
-		try:
-			isdigits = all(isinstance(int(x), int) for x in inputs)
-		except ValueError:
-			sys.exit("Invalid input !")
-		if isdigits:
-			for x in inputs:
-				try:
-					print(files[int(x)-1])
-					os.remove(f"downloads/{files[int(x)-1]}")
-				except IndexError:
-					print(f"Id {x} not found")
-
 def get_id(bot_token : str) -> None:
 	"""Get chat IDs from the bot's updates."""
 	if bot_token == '098765:xxxxxxxxxxxxxxxxx':
@@ -322,10 +218,7 @@ def send_message(message: str, bot_token: str = config['Telegram']['bot_token'],
 	server_url = tg_server_url()
 
 	url = f"{server_url}/bot{bot_token}/sendMessage"
-	data = {
-		'chat_id': chat_id,
-		'text': message
-	}
+	data = {'chat_id': chat_id, 'text': message}
 
 	try:
 		r = requests.post(url, data=data)
