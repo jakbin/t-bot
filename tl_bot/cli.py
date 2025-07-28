@@ -1,9 +1,12 @@
 import argparse
 
 from tl_bot import __version__
-from tl_bot.main import setup, test_token, reset, upload_file, download, config, get_id, files, delete, send_message
+from tl_bot.config import get_config, reset, setup
+from tl_bot.main import test_token, upload_file, download, get_id, send_message, DOWNLOADS_DIR
+from tl_bot.utils import  files, delete
 
 package_name = "t-bot"
+config = get_config()
 chat_id = config['Telegram']['chat_id']
 bot_token = config['Telegram']['bot_token']
 
@@ -66,9 +69,9 @@ def main(argv = None):
 	elif args.command == "d":
 		return download(args.url, bot_token, chat_id, args.caption)
 	elif args.command == "files":
-		return files()
+		return files(DOWNLOADS_DIR)
 	elif args.command == "del":
-		return delete()
+		return delete(DOWNLOADS_DIR)
 	elif args.command == "msg":
 			return send_message(args.message, bot_token, chat_id)
 	elif args.version:
