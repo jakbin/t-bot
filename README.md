@@ -47,12 +47,12 @@ from tl_bot import test_token
 test_token(bot_token)   # bot_token type str
 ```
 
-### tl_bot.uploader(bot_token: str, chat_id: str, file_name: str, server_url: str, caption: str)
+### tl_bot.uploader(file_name: str, server_url: str, bot_token: str, chat_id: str, caption: str)
 
 ```py
 from tl_bot import uploader
 
-uploader(bot_token, chat_id, file_name, server_url, caption)    # all arguments must be str
+uploader(file_name, server_url, bot_token, chat_id, caption)    # all arguments must be str
 ```
 
 ### tl_bot.download(url:str, bot_token:str, chat_id:str, caption:str)
